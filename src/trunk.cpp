@@ -1,33 +1,13 @@
-#include <string>
-#include <fstream>
+#include "trunk.h"
 
-class trunck {
-private:
-    fstream virtualFile;
-    double total_size;
-    double used_size;
-
-    
-
-public:
-    bool mkfs();
-    bool open(string fileName, string flag);
-    bool read(string fd, string size);
-    bool write(string fd, string size);
-    bool seek(string fs, string offset);
-    bool close(string fd);
-    bool mkdir(string dirname);
-    bool rmdir(string dirname);
-    bool cd(string dirname);
-    bool link(string src, string dest);
-    bool unlink(string name);
-    bool stat(string name);
-    bool ls();
-    bool cat(string name);
-    bool cp(string src, string dest);
-    bool tree();
-    bool import(string srcname, string destname);
-    bool export_(string srcname, string destname);
+AFS::AFS(int numBytes){
+   create_virtual_disk(numBytes);
 }
-    
-    
+
+void AFS::create_virtual_disk(int numBytes){
+    std::ofstream ofs("virtualDisk.D", std::ios_base::binary|std::ios_base::out); 
+    ofs.seekp(((numBytes*8)<<20)-1);
+    ofs.write("",1);
+    ofs.close();
+}
+        
