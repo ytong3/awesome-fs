@@ -8,11 +8,19 @@ private:
     const double total_size = 100*1<<6*sizeof(char);
     double used_size;
 	int blockSize = 4<<10;//in bytes
-	int usrDataStart;
-	int inodeDataStart;
+	int dataRegionStart;//in blocks
+	int inodeDataStart;//in blocks
+    int rootdirNode;//in blocks
 
     void create_virtual_disk(int numBytes);
     AFS(int numBytes);
+
+    //utility tools
+    //a position (pos) is a 32-bit unsigned number, serving as the absolute offset of the virtual disk.
+    void write_disk(size_t startPos, string buffer);
+    void read_disk(size_t startPos, size_t readSize, string& buffer);
+    size_t get_block_pos(int blockNum); 
+    
 
 public:
     bool mkfs();
