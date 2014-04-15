@@ -7,6 +7,9 @@ private:
     fstream virtualDisk;
     const double total_size = 100*1<<6*sizeof(char);
     double used_size;
+	int blockSize = 4<<10;//in bytes
+	int usrDataStart;
+	int inodeDataStart;
 
     void create_virtual_disk(int numBytes);
     AFS(int numBytes);
