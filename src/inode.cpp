@@ -7,6 +7,7 @@ struct Inode{
 	uint32_t ctime;//create time
 	uint32_t blocks;//how many blocks
     uint32_t block[10];
+    size_t number;
 
 	void set_create_time(int time);
 };
