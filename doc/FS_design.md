@@ -25,8 +25,7 @@ Several continuous blocks reserved for holding inodes. Together with the inode, 
 
 We can work out the size of inode table as follows.
 
-As previously discussed, we have 25600 blocks in total. We use the first block as the superblock. Then we consider the data bitmap, we need a bit for each block of the 100MB virtual disk. So we must have 25600 bits or 3.2KB for data bitmap, which requires just 1 block. For the same reason, we know that the inode bitmap also takes less than a block. By thining of the worst case, i.e. all files occupy only a block in the data region,  say x files, so x blocks in the data region,
-and x inodes. We have fe 1+1+1+x* 
+As previously discussed, we have 25600 blocks in total. We use the first block as the superblock. Then we consider the data bitmap, we need a bit for each block of the 100MB virtual disk. So we must have 25600 bits or 3.2KB for data bitmap, which requires just 1 block. For the same reason, we know that the inode bitmap also takes less than a block. By thining of the worst case, i.e. all files occupy only a block in the data region,  say x files, so x blocks in the data region, we also have x inodes. We have fe `1+1+1+x/(block_size/sizeof(Inode))+x = numOfBlock`
 
 ## data bitmap
 A bitmap used to indicate the availability of the data region, in terms of block.
