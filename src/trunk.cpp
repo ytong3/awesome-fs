@@ -81,7 +81,7 @@ bool AFS::format(){
 void AFS::create_virtual_disk(size_t numBytes)
 
     {
-        std::ofstream ofs("virtualDisk.D", std::ios_base::binary|std::ios_base::out); 
+        std::ofstream ofs("Disk.D", std::ios_base::binary|std::ios_base::out); 
         ofs.seekp(((numBytes*8)<<20)-1);
         ofs.write("",1);
         ofs.close();
@@ -91,12 +91,22 @@ uint32_t get_block_pos(size_t blockNum){
     return blockNum*blockSize*8;        //all pos must be in terms of bit
 }
 
-bool write_disk(size_t startPos, string buffer){
+bool write_disk(size_t startPos, char* buffer){
     //check if the disk is open. If not open it with the output mode.
     //Then write to the file from the given start position with the contents in the buffer;
+    FILE *pFile;
+    pFile = fopen(DiskFileName.c_string(),"wb");
+    fseek(pFile,startPos,SEEK_SET);
+    char buffer 
+    Disk<<buffer;
+    Disk.close();
 } 
 
 bool read_disk(int startPos, int readSize, string& buffer){
     //check if the disk is open. If not, open it and set to input mode.
     //then read given size of content from from the start pos to the the buffer;
+    Disk.open(DiskFileName,std::fstream::in);
+    Disk.seekg(startPos);
+    Disk>>buffer;
+    Disk.close();
 

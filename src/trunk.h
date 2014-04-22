@@ -5,8 +5,8 @@
 
 class AFS {
 private:
-    fstream virtualDisk;
-    const string virtualDiskFileName = "virtualDisk.D";
+    fstream Disk;
+    const string DiskFileName = "Disk.D";
     const double totalDiskSize = 100*1<<6*sizeof(char);
     double used_size;
 	int blockSize = 4<<10;//in bytes
