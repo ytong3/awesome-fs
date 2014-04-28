@@ -1,40 +1,46 @@
-#include <string>
+#pragma once
 #include <fstream>
-#include "inode.h"
 #include <vector>
+#include <assert.h>
+#include <string.h>
+#include <iostream>
+using namespace std;
 
 class AFS {
 private:
-    fstream Disk;
-    const string DiskFileName = "Disk.D";
-    const double totalDiskSize = 100*1<<6*sizeof(char);
-    double used_size;
-	int blockSize = 4<<10;//in bytes
+    const double totalDiskSize;
+	int blockSize;//in bytes
     const size_t numOfBlocks;
-    const size_t numOfInodes;
     const size_t numOfInodesBlocks;
-	const size_t dataRegionStart;//in blocks
-	const size_t inodeStartBlcok;//in blocks
+    const size_t numOfInodes;
+	
+	const size_t inodeStartBlock;//in blocks
     const size_t rootDirInode;//number of the inode for the root directory
     const size_t blockMapStartPos;
     const size_t inodeMapStartPos;
+	const size_t dataRegionStart;//in blocks
+
+    //root dir
+    const string rootDirPath = "/";
 
     //bitmap for inode and data region
     std::vector<bool> blockMap;
     std::vector<bool> inodeMap;
-    bool setBlockMap(size_t pos, bool val);//this and the next operation couples the memory and disk
-    bool setInodeMap(size_t pos, bool val);
+    void setBlockMap(size_t pos, bool val);//this and the next operation couples the memory and disk
+    void setInodeMap(size_t pos, bool val);
+	
+	
 
 
-    void create_virtual_disk(int numBytes);
-    AFS(int numBytes);
+    void create_virtual_disk(size_t numBytes);
+    
 
     //utility tools
     //a position (pos) is a 32-bit unsigned number, serving as the absolute offset of the virtual disk.
-    bool write_disk(size_t startPos, string& buffer);
-    bool read_disk(size_t startPos, size_t readSize, string& buffer);
-    size_t get_block_pos(size_t blockNum);//get start offset of a block by its block number
-    size_t get_inode_pos(size_t inodeNum);//get start offset of a inode by its inode number
+    void write_disk(size_t startPos, void* buffer, size_t bufferSize);
+    void read_disk(size_t startPos, void* buffer, size_t bufferSize);
+    size_t get_block_pos(size_t blockNum);//get start offset in bytes of a block by its block number
+    size_t get_inode_pos(size_t inodeNum);//get start offset in bytes of a inode by its inode number
     
 
     //bitmap related
@@ -47,29 +53,34 @@ private:
     size_t get_free_inode();
 
     //internal utility
-    bool format();
+    bool formatted;
+	
     
     
     
 public:
+
+	AFS(int numBytes);
+    static const std::string DiskFileName;
+	bool format();
     bool mkfs();
-    bool open(string fileName, string flag);
-    bool read(string fd, string size);
-    bool write(string fd, string size);
-    bool seek(string fs, string offset);
-    bool close(string fd);
-    bool mkdir(string dirname);
-    bool rmdir(string dirname);
-    bool cd(string dirname);
-    bool link(string src, string dest);
-    bool unlink(string name);
-    bool stat(string name);
+    bool open(std::string fileName, std::string flag);
+    bool read(std::string fd, std::string size);
+    bool write(std::string fd, std::string size);
+    bool seek(std::string fs, std::string offset);
+    bool close(std::string fd);
+    bool mkdir(std::string dirname);
+    bool rmdir(std::string dirname);
+    bool cd(std::string dirname);
+    bool link(std::string src, std::string dest);
+    bool unlink(std::string name);
+    bool stat(std::string name);
     bool ls();
-    bool cat(string name);
-    bool cp(string src, string dest);
+    bool cat(std::string name);
+    bool cp(std::string src, std::string dest);
     bool tree();
-    bool import(string srcname, string destname);
-    bool export_(string srcname, string destname);
-}
+    bool import(std::string srcname, std::string destname);
+    bool export_(std::string srcname, std::string destname);
+};
     
-    
+

@@ -1,13 +1,22 @@
 #include <stdint.h>
+#include <stdlib.h>
+#include "inode.h"
 
-struct Inode{
-    uint8_t type;//all 1 for regular file and all 0 for directory
-	uint16_t mode;
-	uint16_t size;//size in bytes
-	uint32_t ctime;//create time
-	uint32_t blocks;//how many blocks
-    uint32_t block[10];
-    size_t number;
+void Inode::write_inode_to_disk(size_t nodeStartPos){
+	FILE* pF = fopen(FS::DiskFileName.c_str(),"wb");
+	fseek(pF,nodeStartPos,SEEK_SET);
+	fwrite(this,sizeof(Inode),1,pF);
+	fclose(pF);
+}
 
-	void set_create_time(int time);
-};
+Inode* Inode::read_inode_from_disk(size_t nodeStartPos){
+	FILE* pF = fopen(FS::DiskFileName.c_str(),"rb");
+	fseek(pF,nodeStartPos,SEEK_SET);
+	Inode* buffer = (Inode*) malloc(sizeof(Inode));
+	fread(buffer,sizeof(Inode),1,pF);
+	fclose(pF);
+}
+	
+void Inode::set_create_time(int time){
+	this->ctime = time;
+}

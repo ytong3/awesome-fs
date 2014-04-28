@@ -1,0 +1,2 @@
+rm *.bin
+./main.o
