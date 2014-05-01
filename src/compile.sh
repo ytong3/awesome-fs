@@ -1,1 +1,1 @@
-g++ main.cpp trunk.cpp -o main.o
+g++ main.cpp trunk.cpp AFS_File.cpp inode.cpp -o main.o

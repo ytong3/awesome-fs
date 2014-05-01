@@ -11,9 +11,9 @@ struct Inode{
 	uint32_t ctime;//create time
 	uint32_t blocks;//how many blocks
     uint32_t block[10];
-    size_t number;
+    size_t number;//inode number
 
 	void set_create_time(int time);
 	void write_inode_to_disk(size_t nodeStartPos);
-	Inode* read_inode_from_disk(size_t nodeStartPos);
+	void read_inode_from_disk(size_t nodeStartPos);
 };

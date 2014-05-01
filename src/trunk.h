@@ -6,14 +6,19 @@
 #include <iostream>
 using namespace std;
 
+class AFS_File;
+class Inode;
+
 class AFS {
+friend class AFS_File;
+friend class Inode;
 private:
     const double totalDiskSize;
-	int blockSize;//in bytes
+	  int blockSize;//in bytes
     const size_t numOfBlocks;
     const size_t numOfInodesBlocks;
     const size_t numOfInodes;
-	
+
 	const size_t inodeStartBlock;//in blocks
     const size_t rootDirInode;//number of the inode for the root directory
     const size_t blockMapStartPos;
@@ -21,19 +26,21 @@ private:
 	const size_t dataRegionStart;//in blocks
 
     //root dir
-    const string rootDirPath = "/";
+    const string rootDirPath;
 
     //bitmap for inode and data region
     std::vector<bool> blockMap;
     std::vector<bool> inodeMap;
     void setBlockMap(size_t pos, bool val);//this and the next operation couples the memory and disk
     void setInodeMap(size_t pos, bool val);
-	
-	
+    vector<int> find_available_block(size_t fileSize);
+    int find_next_available_inode();
+
+
 
 
     void create_virtual_disk(size_t numBytes);
-    
+
 
     //utility tools
     //a position (pos) is a 32-bit unsigned number, serving as the absolute offset of the virtual disk.
@@ -41,7 +48,7 @@ private:
     void read_disk(size_t startPos, void* buffer, size_t bufferSize);
     size_t get_block_pos(size_t blockNum);//get start offset in bytes of a block by its block number
     size_t get_inode_pos(size_t inodeNum);//get start offset in bytes of a inode by its inode number
-    
+
 
     //bitmap related
     void reserve_block(int startNum, int numBlock);
@@ -54,10 +61,10 @@ private:
 
     //internal utility
     bool formatted;
-	
-    
-    
-    
+
+
+
+
 public:
 
 	AFS(int numBytes);
@@ -82,5 +89,3 @@ public:
     bool import(std::string srcname, std::string destname);
     bool export_(std::string srcname, std::string destname);
 };
-    
-
