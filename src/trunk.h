@@ -4,17 +4,20 @@
 #include <assert.h>
 #include <string.h>
 #include <iostream>
+#include "trunk.h"
+#include "inode.h"
+#define DEBG
 using namespace std;
 
-class AFS_File;
-class Inode;
+struct Inode;
+struct AFS_File;
 
 class AFS {
 friend class AFS_File;
 friend class Inode;
 private:
     const double totalDiskSize;
-	  int blockSize;//in bytes
+	const size_t blockSize;//in bytes
     const size_t numOfBlocks;
     const size_t numOfInodesBlocks;
     const size_t numOfInodes;
@@ -27,31 +30,30 @@ private:
 
     //root dir
     const string rootDirPath;
+	AFS_File *pPWD;
+	Inode *pPWDInode;
 
     //bitmap for inode and data region
     std::vector<bool> blockMap;
     std::vector<bool> inodeMap;
     void setBlockMap(size_t pos, bool val);//this and the next operation couples the memory and disk
     void setInodeMap(size_t pos, bool val);
-    vector<int> find_available_block(size_t fileSize);
-    int find_next_available_inode();
-
-
-
+    vector<size_t> find_available_block(size_t fileSize);
+    size_t find_next_available_inode();
 
     void create_virtual_disk(size_t numBytes);
 
 
     //utility tools
     //a position (pos) is a 32-bit unsigned number, serving as the absolute offset of the virtual disk.
-    void write_disk(size_t startPos, void* buffer, size_t bufferSize);
+    void write_disk(size_t startPos, const void* buffer, size_t bufferSize);
     void read_disk(size_t startPos, void* buffer, size_t bufferSize);
     size_t get_block_pos(size_t blockNum);//get start offset in bytes of a block by its block number
     size_t get_inode_pos(size_t inodeNum);//get start offset in bytes of a inode by its inode number
 
 
     //bitmap related
-    void reserve_block(int startNum, int numBlock);
+    void reserve_block(size_t startNum, int numBlock);
     void free_block(int startNum, int numBlock);
     size_t get_free_blocks(int numBlock);
 
@@ -61,31 +63,33 @@ private:
 
     //internal utility
     bool formatted;
+	
 
+	bool format();
+    void mkfs();
+    void open(std::string fileName, std::string flag);
+    void read(std::string fd, std::string size);
+    void write(std::string fd, std::string size);
+    void seek(std::string fs, std::string offset);
+    void close(std::string fd);
+    void mkdir(std::string dirname);
+    void rmdir(std::string dirname);
+    void cd(std::string dirname);
+    void link(std::string src, std::string dest);
+    void unlink(std::string name);
+    void stat(std::string name);
+    void ls();
+    void cat(std::string name);
+    void cp(std::string src, std::string dest);
+    void tree();
+    void import(std::string srcname, std::string destname);
+    void export_(std::string srcname, std::string destname);
 
-
-
+	//utility for argument parsing
+	vector<string> parse_args(string args);
 public:
 
-	AFS(int numBytes);
+	AFS(size_t numBytes);
     static const std::string DiskFileName;
-	bool format();
-    bool mkfs();
-    bool open(std::string fileName, std::string flag);
-    bool read(std::string fd, std::string size);
-    bool write(std::string fd, std::string size);
-    bool seek(std::string fs, std::string offset);
-    bool close(std::string fd);
-    bool mkdir(std::string dirname);
-    bool rmdir(std::string dirname);
-    bool cd(std::string dirname);
-    bool link(std::string src, std::string dest);
-    bool unlink(std::string name);
-    bool stat(std::string name);
-    bool ls();
-    bool cat(std::string name);
-    bool cp(std::string src, std::string dest);
-    bool tree();
-    bool import(std::string srcname, std::string destname);
-    bool export_(std::string srcname, std::string destname);
+	void process_command(string args);
 };

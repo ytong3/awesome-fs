@@ -4,20 +4,32 @@
 #include <map>
 #include <stdint.h>
 #include "inode.h"
+#include "trunk.h"
 
 using namespace std;
 
 struct AFS_File {
+	Inode* inode;
   uint8_t fileType;          //all zero represents dir, otherwise regular files
 	size_t inodeNum;
   string fileName;
+  int fileNameLen;
   map<string,int> subDirs;    //for dir type only
-  AFS_File* parentDir;
+  int parentInode;
   int dataSize;
   char *usrData;
   AFS* FS;                    //file systme that the file lives in
+  
+  //AFS_File() = default;	  //no default constructor is provide, 
+  							  //AFS_File object must bound to a inode.
 
-  AFS_File(uint8_t type, string fileName, int inodeNum, AFS_File* parentDir, AFS* FS);
-  void write_file_to_disk(size_t fileStartPos);
-  void read_file_from_disk(size_t fileStartPos);
+  //AFS_File(Inode* inode,string fileName,AFS* FS);
+  
+  AFS_File(Inode* inode, string fileName, int parentInode, AFS* FS);
+  AFS_File(Inode* inode,AFS* FS);
+  ~AFS_File();
+  void write_file_to_disk();
+  void serialize_subdir_map();
+  void read_file_from_disk();
+  void display_dir_info();
 };
