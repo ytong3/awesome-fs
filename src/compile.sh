@@ -1,1 +1,2 @@
-g++ -std=c++11 -g main.cpp trunk.cpp AFS_File.cpp inode.cpp ls.cpp cd.cpp mkdir.cpp -o main.o
+rm -f main.o
+g++ -std=c++11 -g main.cpp *.o -o main.o

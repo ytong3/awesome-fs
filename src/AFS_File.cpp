@@ -12,6 +12,7 @@ AFS_File::AFS_File(Inode* inode, string fileName, int parentInode, AFS* FS){
     this->parentInode = parentInode;
     subDirs.clear();
     this->FS=FS;
+	this->offset = 0;
 
 	//binding inode
 	this->inode = inode;
@@ -24,38 +25,13 @@ AFS_File::AFS_File(Inode* inode, string fileName, int parentInode, AFS* FS){
 	if (fileType == 0x00){
 		subDirs.insert(make_pair(".",this->inodeNum));
 		if(parentInode!=-1) subDirs.insert(make_pair("..", parentInode));
-		
 		serialize_subdir_map();
 	}
 }
 
-void AFS_File::serialize_subdir_map(){
-	//this method serialize the subdir map of a dir and put the result (a c-style string) into usrData and set dataSize accordingly
-			//serialize the map
-		string buffer;
-        auto mit = subDirs.begin();
-        for (;mit!=subDirs.end();mit++){
-        	char inodeNum[10];
-        	sprintf(inodeNum,"%d",mit->second);
-            buffer.append(mit->first+"::"+inodeNum);
-			buffer.append("|");
-        }
-        
-        //put buffer into the data area
-        //char *tmpBuffer = (char*)malloc(buffer.length());
-        
-        if (dataSize!=0) free(usrData);
-        usrData = (char*)malloc(buffer.length()+1);
-        strcpy(usrData,buffer.c_str());//strcpy copies all characters in source to destination, INCLUDING the null terminating character.
-        dataSize = buffer.length();
-        /*
-        cout<<"serialized map str: "<<buffer<<endl;
-        cout<<"dataSize="<<dataSize<<endl;
-        printf("usrData =%s\n",usrData);      
-        */
-}
 
-//use this ctor if can be read from disk, and specifically 
+
+//use this ctor if file can be read from disk, and specifically 
 AFS_File::AFS_File(Inode* inode, AFS* FS){
 	//bind inode
 	this->fileType = inode->type;
@@ -64,7 +40,8 @@ AFS_File::AFS_File(Inode* inode, AFS* FS){
 	dataSize=0;
 	usrData=NULL;
 	this->FS = FS;//BUG! a constructor must ensure to initialize every field.
-	
+	this->offset=0;
+
 	read_file_from_disk();
 }
 
@@ -73,6 +50,9 @@ void AFS_File::write_file_to_disk(){
 	
 		//serialize the latest map
 		serialize_subdir_map();
+		
+		//size of the file already set. update the binded inode
+		inode->size=dataSize;
 		
 		//Dir format
 		//|parentInode(int)|fileNameLen(int)|fileNameStr|dataLen(int)|data
@@ -104,12 +84,49 @@ void AFS_File::write_file_to_disk(){
 		cout<<"Writing file complete"<<endl;
 	}
 	else{
-		//if file is a regular file. just write the size and the data to file
-		int fileStartPos = FS->get_block_pos(inode->block[0]);
-		FS->write_disk(fileStartPos,&dataSize,sizeof(int));
+		//Regular file format
+		//|fileNameLen(int)|fileNameStr|dataLen(int)|data
+		//TODO:did not consider file would span several blocks for now
+		//read the first block
+		perror("Begin writing an regular file.\n");
+		size_t fileStartPos = FS->get_block_pos(inode->block[0]);
+		//put the fileName length
+		FS->write_disk(fileStartPos,&fileNameLen,sizeof(int));
 		fileStartPos+=sizeof(int);
-		FS->write_disk(fileStartPos,&usrData,strlen(usrData));//must include the last EOF
+		//put the fileName
+		FS->write_disk(fileStartPos,fileName.c_str(),fileNameLen);
+		fileStartPos+=fileNameLen;
+		//put the dataSize
+		FS->write_disk(fileStartPos,&dataSize,sizeof(int));
+		fileStartPos+=fileNameLen;
+		//put the data
+		FS->write_disk(fileStartPos,usrData,dataSize);
 	}
+}
+void AFS_File::serialize_subdir_map(){
+	//this method serialize the subdir map of a dir and put the result (a c-style string) into usrData and set dataSize accordingly
+			//serialize the map
+		string buffer;
+        auto mit = subDirs.begin();
+        for (;mit!=subDirs.end();mit++){
+        	char inodeNum[10];
+        	sprintf(inodeNum,"%d",mit->second);
+            buffer.append(mit->first+"::"+inodeNum);
+			buffer.append("|");
+        }
+        
+        //put buffer into the data area
+        //char *tmpBuffer = (char*)malloc(buffer.length());
+        
+        if (dataSize!=0) free(usrData);
+        usrData = (char*)malloc(buffer.length()+1);
+        strcpy(usrData,buffer.c_str());//strcpy copies all characters in source to destination, INCLUDING the null terminating character.
+        dataSize = buffer.length();
+        /*
+        cout<<"serialized map str: "<<buffer<<endl;
+        cout<<"dataSize="<<dataSize<<endl;
+        printf("usrData =%s\n",usrData);      
+        */
 }
 
 void AFS_File::read_file_from_disk(){
@@ -139,13 +156,11 @@ void AFS_File::read_file_from_disk(){
 		//get filename
 		fread(tmpFileName,sizeof(char),fileNameLen,pFile);
 		tmpFileName[fileNameLen]='\0';
-		printf("%s\n",tmpFileName);
 		fileName.assign(tmpFileName, fileNameLen); 
 		//cout<<"In read_file_from_disk: fileName="<<fileName<<endl;
 
 		//get dataSize
 		fread(&dataSize,sizeof(int),1,pFile);
-		//cout<<"In read_file_from_disk: dataSize="<<dataSize<<endl;
 		
 		assert(dataSize<4<<10);
 		//printf("\nIn read_file_from_disk: len of file is: %d\n", len);
@@ -178,13 +193,34 @@ void AFS_File::read_file_from_disk(){
 		}
 		//clean up memory
 	}else{
+		//Regular file format
+		//|fileNameLen(int)|fileNameStr|dataLen(int)|data
 		//TODO:did not consider file would span several blocks for now
 		FILE *pFile = fopen(AFS::DiskFileName.c_str(),"rb");
-		if (!pFile) {perror("File Open Failure");exit(3);}
-		fseek(pFile,0,FS->get_block_pos(inode->block[0]));
+		if (!pFile) {perror("Disk Operation Failure");exit(3);}
+
+		//read the first block (to get some meta data)
+		size_t fileStartPos = FS->get_block_pos(inode->block[0]);
+		fseek(pFile,fileStartPos,SEEK_SET);
+	
+		//get the fileName length
+		fread(&fileNameLen,sizeof(int),1,pFile);
+		//get the fileName
+		assert(fileNameLen<30);
+		char tmpFileName[30];
+		fread(&tmpFileName,sizeof(int),1,pFile);
+		tmpFileName[fileNameLen]='\0';
+		fileName.assign(tmpFileName,fileNameLen);
+	
+		//get dataSize
 		fread(&dataSize,sizeof(int),1,pFile);
+		
+		//TODO:in prototyping. Only file less than 40K supported
+		assert(dataSize<4<<10);
+		
+		//get the content
 		usrData = (char*)malloc(dataSize+1);
-		fread(&usrData,1,dataSize,pFile);
+		fread(usrData,1,dataSize,pFile);
 		usrData[dataSize]='\0';
 		fclose(pFile);
 	}
@@ -195,6 +231,12 @@ AFS_File::~AFS_File(){
 	free(usrData);
 }
 
+void AFS_File::display_file_info(){
+	assert(fileType==0x11);
+	printf("Information about file %s", fileName.c_str());
+	printf("File name: %s\nFile size: %d\nFile descriptor: %d\n",fileName.c_str(),dataSize,inode->number);
+}
+
 void AFS_File::display_dir_info(){
 	if (fileType!=0x00) {
 		perror("Cannot call the method with a non-directory type file.");
@@ -203,9 +245,14 @@ void AFS_File::display_dir_info(){
 	
 	printf("\nFile name\t iNode number\n");
 	for (auto mit=subDirs.begin();mit!=subDirs.end();mit++){
-	 	printf("%s\t %d\n", mit->first.c_str(), mit->second);
+	 	printf("%s\t\t %d\n", mit->first.c_str(), mit->second);
 	}
 	printf("=======END=======\n");
+}
+
+bool AFS_File::file_exists(string name,map<string,int>::iterator &mit){
+	mit = subDirs.find(name);
+	return mit!=subDirs.end();
 }
 	
 

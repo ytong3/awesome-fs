@@ -25,8 +25,6 @@ void AFS::mkdir(string dirName){
 	inode.type = 0x00;
 	//assume a dir-type file can be held by a block
 	vector<size_t> blockLoc = find_available_block(1);//all blocks in blockLoc will be marked as used.
-	for(size_t i:blockLoc)
-		cout<<i<<endl;
 	inode.blocks = blockLoc.size();
 	for(size_t i=0;i<blockLoc.size();i++)
 		inode.block[i]=blockLoc[i];

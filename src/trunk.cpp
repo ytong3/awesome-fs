@@ -19,7 +19,9 @@ AFS::AFS(size_t numBytes)
     dataRegionStart(inodeStartBlock+numOfInodesBlocks),
     rootDirPath("/"),
 	pPWD(NULL),
-	pPWDInode(NULL){
+	pPWDInode(NULL),
+	pPFInode(NULL),
+	pPF(NULL){
 
     create_virtual_disk(numBytes);
 
@@ -72,12 +74,12 @@ void AFS::setBlockMap(size_t pos, bool val){
 	//updating their disk presentation
    char buffer = 0x00;
    for (int i=(pos/8)*8,j=0;i<(pos/8+1)*8;i++,j++){
-   		if (blockMap[i])
+   		if (blockMap[i]==false)		//false means the slot has been occupied and the correpsonding bit shoud be 1.
 			buffer|=1<<j;//set 1;
 	}
    //sync the change with block map on disk
    FILE *pF = fopen(DiskFileName.c_str(),"r+b");
-   fseek(pF, pos/8, SEEK_SET);
+   fseek(pF, blockMapStartPos+pos/8, SEEK_SET);
    fwrite(&buffer,1,1,pF);
    fclose(pF);
 }
@@ -88,18 +90,17 @@ void AFS::setInodeMap(size_t pos, bool val){
 
 	char buffer = 0x00;
 	for (int i= (pos/8)*8,j=0;i<(pos/8+1)*8;i++,j++){
-		if (blockMap[i])
+		if (inodeMap[i]==false)//BUG!! mistakenly put blockMap. Copy&Paste wastes time!
 			buffer|=1<<j;//set 1
 	}
 
 	FILE *pF = fopen(DiskFileName.c_str(),"r+b");
-	fseek(pF,pos/8,SEEK_SET);
+	fseek(pF,inodeMapStartPos+pos/8,SEEK_SET);
 	fwrite(&buffer,1,1,pF);
 	fclose(pF);
 }
 
 size_t AFS::get_block_pos(size_t blockNum){
-
     return blockSize*blockNum;
 }
 
@@ -118,13 +119,13 @@ bool AFS::format(){
 
     //initialize blcok maps in memory
     blockMap.resize(numOfBlocks,true);
-    fill_n(blockMap.begin(),dataRegionStart,false);
-	perror("Creating blockMap in memory");
+    //fill_n(blockMap.begin(),dataRegionStart,false);
+	//perror("Creating blockMap in memory");
 
 	//assume block map occupy less than a block
 	assert(numOfBlocks/8+1<blockSize);
-	char *bufferMapBlock = (char*) malloc(numOfBlocks/8+1);
-	memset(bufferMapBlock,0x00,numOfBlocks/8+1);
+	//char *bufferMapBlock = (char*) malloc(numOfBlocks/8+1);
+	//memset(bufferMapBlock,0x00,numOfBlocks/8+1);
 
 	//set bits before dataReginStart-th bit in both memory and sik
 	//for (int i=0;i<dataRegionStart;i++)
@@ -133,30 +134,30 @@ bool AFS::format(){
 		setBlockMap(i,false);
 
 	//write the buffer to disk
-	FILE* pFile = fopen(DiskFileName.c_str(),"r+b");		//must use read/update mode to realize overwriting existing file
-	if (!pFile) {perror("Errors occurs while formatting the disk");exit(2);}
-	printf("blockMapStartPos = %d\n", blockMapStartPos);
-	fseek(pFile,blockMapStartPos,SEEK_SET);
-	fwrite(bufferMapBlock,1,numOfBlocks/8+1,pFile);
-	free(bufferMapBlock);
-	perror("Sync the blockMap to disk");
+	//FILE* pFile = fopen(DiskFileName.c_str(),"r+b");		//must use read/update mode to realize overwriting existing file
+	//if (!pFile) {perror("Errors occurs while formatting the disk");exit(2);}
+	printf("blockMapStartPos=%d\n",blockMapStartPos);
+	//fseek(pFile,blockMapStartPos,SEEK_SET);
+	//fwrite(bufferMapBlock,1,numOfBlocks/8+1,pFile);
+	//free(bufferMapBlock);
+	//perror("Sync'd the blockMap to disk");
 
 	//initialize inodeMap in both memory and disk
     inodeMap.resize(numOfInodes,true);
-	perror("creating inodeMap in memory");
-   
-    
+	////perror("creating inodeMap in memory");
 
 	//assume that map occupy less than a block
-	assert(numOfInodes/8+1<blockSize);
-	fseek(pFile,inodeMapStartPos,SEEK_SET);
-	char *bufferMapInode = (char*)malloc(numOfInodes/8+1);
-	memset(bufferMapInode,0x00,numOfInodes/8+1);
-	memset(bufferMapInode,0x01,1);
-	fwrite(bufferMapInode,1,numOfInodes/8+1,pFile);
-	perror("inodeMap written to disk");
-	free(bufferMapInode);
-	fclose(pFile);
+	//assert(numOfInodes/8+1<blockSize);
+	//printf("InodeMapStartPos=%d\n",inodeMapStartPos);
+	//fseek(pFile,inodeMapStartPos,SEEK_SET);
+	//char bufferMapInode[numOfInodes/8+1];
+	//if (!bufferMapInode) //perror("Memory allocation success.");
+	//memset(bufferMapInode,0x00,numOfInodes/8+1);
+	//fwrite(bufferMapInode,1,numOfInodes/8+1,pFile);
+
+
+	////perror("inodeMap written to disk. ");
+	//fclose(pFile);
 
     //create root directory and the corresponding inode
     //first inode
@@ -166,11 +167,11 @@ bool AFS::format(){
     rootInode.blocks = 1;
     rootInode.block[0] = dataRegionStart;
     rootInode.number = 0;
+	//perror("Creating new inode in memory");
     
-    //occupy the first block
-
     //create the actual file
     AFS_File rootDir(&rootInode, "/", -1,this);
+	//perror("Create and bind rootDir with rootInode");
     //write file to disk
     setBlockMap(dataRegionStart,false);
     rootDir.write_file_to_disk();
@@ -179,6 +180,16 @@ bool AFS::format(){
 	rootInode.size = rootDir.dataSize+sizeof(int);
 	rootInode.write_inode_to_disk(get_inode_pos(0));
 	setInodeMap(0,false);//reserved for the root dir
+
+	//==check inode and block maps==
+	cout<<"Chekcing maps"<<endl;
+	for (int i=0;i<20;i++)
+		cout<<(inodeMap[i]?"0":"1");
+	
+	cout<<endl;
+
+	for (int i=0;i<20;i++)
+		cout<<(blockMap[i]?"0":"1");
 
 	//test class AFS_File and inode
 	#ifdef DEBG
@@ -222,11 +233,11 @@ void AFS::create_virtual_disk(size_t numBytes){
 	//write numBytes of memory into a file may not be secure enough.
 	//fix: use a while loop to write 0x00 100<<20 times.
 	if (!fwrite(buffer,sizeof(char),numBytes,pFile)||fclose(pFile)==EOF){
-		perror("File I/O failure");
+		//perror("File I/O failure");
 		exit(3);
 	}
 	free(buffer);
-	perror("Virtual Disk Created");
+	//perror("Virtual Disk Created");
 }
 
 void AFS::write_disk(size_t startPos, const void* buffer, size_t bufferSize){
@@ -274,31 +285,4 @@ void AFS::read_disk(size_t startPos, void* buffer, size_t bufferSize){
 	fclose(pFile);
 }
 
-void AFS::process_command(string argStr){
-	vector<string> args = parse_args(argStr);
-	if (args.size()==0) {cerr<<"Invalid commands.\n";return;}
-	
-	if (args[0]=="format") format();
-	else if (args[0]=="ls") 
-	{
-		ls();	
-	}
-	else if (args[0]=="cd"){
-		if (args.size()!=2){
-			cerr<<"Too few arguments"<<endl;
-			return;
-		}
-		cd(args[1]);
-	}
-	else if (args[0]=="mkdir"){
-		if (args.size()!=2){
-			cerr<<"Too few arguments"<<endl;
-			return;
-		}
-		mkdir(args[1]);
-	}
-	else{
-		cerr<<"Command not found\n";
-	}
-	cout<<pPWD->fileName;
-}
+

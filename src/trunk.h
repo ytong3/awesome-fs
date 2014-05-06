@@ -33,6 +33,11 @@ private:
 	AFS_File *pPWD;
 	Inode *pPWDInode;
 
+	//present opened file related variables
+	Inode *pPFInode;
+	AFS_File *pPF;//present file
+	string fileOperationFlag;
+
     //bitmap for inode and data region
     std::vector<bool> blockMap;
     std::vector<bool> inodeMap;
@@ -67,11 +72,11 @@ private:
 
 	bool format();
     void mkfs();
-    void open(std::string fileName, std::string flag);
-    void read(std::string fd, std::string size);
-    void write(std::string fd, std::string size);
+    size_t open(string fileName, std::string flag);
+    string read(size_t fd, size_t size);
+    void write(size_t, std::string size);
     void seek(std::string fs, std::string offset);
-    void close(std::string fd);
+    void close(size_t fd);
     void mkdir(std::string dirname);
     void rmdir(std::string dirname);
     void cd(std::string dirname);

@@ -16,6 +16,9 @@ struct Inode{
     size_t number;//inode number
 	void display();
 
+	Inode() = default;
+	Inode(size_t inodeNum, AFS*);
+
 	//void set_create_time(int time);
 	void write_inode_to_disk(size_t nodeStartPos);
 	void read_inode_from_disk(size_t nodeStartPos);
