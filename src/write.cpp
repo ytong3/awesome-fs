@@ -30,10 +30,15 @@ void AFS::write(size_t fd, string str){
 		pPF->usrData = (char*)malloc(pPF->dataSize);
 		pPF->dataSize=0;
 	}
+
+	cerr<<"In write, pPF->offset="<<pPF->offset<<endl;
 	
 	memcpy(pPF->usrData+pPF->offset,str.c_str(),str.length());
 	pPF->offset+=str.length();
+	cerr<<"In write, pPF->offset="<<pPF->offset<<endl;
 	pPF->dataSize = pPF->dataSize>pPF->offset?pPF->dataSize:pPF->offset;
+	
+	cerr<<"In write, pPF->dataSize"<<pPF->dataSize<<endl;
 	
 	//flush changes to disk
 	pPF->write_file_to_disk();

@@ -18,7 +18,18 @@ void AFS::mkdir(string dirName){
 	int inodeLoc = find_next_available_inode();
 	
 	if (inodeLoc==-1) {cout<<"No available iNode. Try again."<<endl;return;}
-
+	
+	//creat an iNode
+	Inode inode;
+	inode.init(true,this);
+	
+	AFS_File nFile(&inode,dirName,pPWDInode->number,this);
+	nFile.write_file_to_disk();
+	
+	delete pPWD;
+	pPWD = AFS_File(pPWDInode, this);
+}
+/*
 	//create an iNode
 	Inode inode;
 	inode.number = inodeLoc;
@@ -40,11 +51,9 @@ void AFS::mkdir(string dirName){
 	//insert the subdir into subDir 
 	subDirs.insert(make_pair(dirName,inode.number));
 	//update PWD's presence in storage. assuming there is no need to change the respective iNode.
-	cout<<"Updating current dir"<<endl;
-	cout<<"Writing to block "<<pPWD->inode->block[0]<<endl;
 	pPWD->write_file_to_disk();
-	cout<<"Updated current dir"<<endl;
 }
+*/
 	
 	
 

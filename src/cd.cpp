@@ -24,7 +24,13 @@ void AFS::cd(string dirName){
 		return;
 	}
 
-	//if dir is found
+	//if file is found
+	//load the respective inode
+	Inode inode(mit->second,this);
+	if (inode.type!=0x00){
+		cerr<<"Cannot change to a non-directory type file."<<endl;
+		return;
+	}
 	//delete pPWD in the dynamic memory
 	delete pPWDInode;
 	delete pPWD;

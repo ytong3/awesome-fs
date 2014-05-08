@@ -68,6 +68,7 @@ private:
 
     //internal utility
     bool formatted;
+	bool get_inode_by_path(string path, bool newFile, size_t &inode_num);
 	
 
 	bool format();
@@ -75,7 +76,7 @@ private:
     size_t open(string fileName, std::string flag);
     string read(size_t fd, size_t size);
     void write(size_t, std::string size);
-    void seek(std::string fs, std::string offset);
+    void seek(size_t fs, size_t offset);
     void close(size_t fd);
     void mkdir(std::string dirname);
     void rmdir(std::string dirname);

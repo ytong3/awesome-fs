@@ -18,6 +18,12 @@ AFS_File::AFS_File(Inode* inode, string fileName, int parentInode, AFS* FS){
 	this->inode = inode;
 	this->inodeNum = inode->number;
 
+	//adding new file to parentInode
+	Inode parDirInode(parentInode,this);
+	AFS_File parDir(&parDirInode,this);
+	parDir.subDirs.insert(make_pari(fileName, inodeNum);
+	parDir.write_file_to_disk();
+
     //false-proof: let usrData points to a EOF
     dataSize = 0;
     usrData = NULL;
@@ -98,7 +104,7 @@ void AFS_File::write_file_to_disk(){
 		fileStartPos+=fileNameLen;
 		//put the dataSize
 		FS->write_disk(fileStartPos,&dataSize,sizeof(int));
-		fileStartPos+=fileNameLen;
+		fileStartPos+=sizeof(int);
 		//put the data
 		FS->write_disk(fileStartPos,usrData,dataSize);
 	}
@@ -208,12 +214,13 @@ void AFS_File::read_file_from_disk(){
 		//get the fileName
 		assert(fileNameLen<30);
 		char tmpFileName[30];
-		fread(&tmpFileName,sizeof(int),1,pFile);
+		fread(&tmpFileName,sizeof(char),fileNameLen,pFile);
 		tmpFileName[fileNameLen]='\0';
 		fileName.assign(tmpFileName,fileNameLen);
 	
 		//get dataSize
 		fread(&dataSize,sizeof(int),1,pFile);
+		cerr<<"In read_file_to_disk, dataSize = "<<dataSize<<endl;
 		
 		//TODO:in prototyping. Only file less than 40K supported
 		assert(dataSize<4<<10);
@@ -254,5 +261,4 @@ bool AFS_File::file_exists(string name,map<string,int>::iterator &mit){
 	mit = subDirs.find(name);
 	return mit!=subDirs.end();
 }
-	
 
